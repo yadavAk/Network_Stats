@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name"> Network Cricket </string>
+
+    <!-- Title for the activity to keep cricket score [CHAR LIMIT=20] -->
+    <string name="network_stats_activity_title"> Network Stats</string>
+
+    <!-- Title for the activity to keep cricket score [CHAR LIMIT=20] -->
+    <string name="cricket_score_activity_title"> Cricket Score Keeper</string>
+
+    <!-- for submit button -->
+    <string name="submit"> Submit </string>
+</resources>
