@@ -1,7 +1,9 @@
 package com.example.lutherking.myapplication;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
+import android.app.Activity;
 import android.app.AppOpsManager;
 import android.app.usage.NetworkStats;
 import android.app.usage.NetworkStatsManager;
@@ -21,7 +23,11 @@ import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
@@ -33,7 +39,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
     private static final String TAG = "MainActivity";
     private static final int PERMISSION_READ_PHONE_STATE = 37;
 
@@ -42,24 +48,61 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Log.i(TAG, "activity_main layout file rendered");
+        hasPermissions();
+
+        Spinner spinner = findViewById(R.id.data_unit_spinner);
+
+        spinner.setOnItemSelectedListener(this);
+
+        // Create an ArrayAdapter using the string array and a default spinner layout
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                R.array.data_speed_units, android.R.layout.simple_spinner_item);
+        // Specify the layout to use when the list of choices appears
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        // Apply the adapter to the spinner
+        spinner.setAdapter(adapter);
+
+
+        //Setup a FAB to open Cricket score
+        FloatingActionButton fab = findViewById(R.id.fab);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(MainActivity.this, CricketScoreActivity.class);
+                startActivity(intent);
+            }
+        });
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        requestPermissions();
+    }
+
+    public void onItemSelected(AdapterView<?> parent, View view,
+                               int pos, long id) {
+
+
+        // An item was selected. You can retrieve the selected item using
+        String selected_unit = parent.getItemAtPosition(pos).toString();
+
+        String[] data_units = getResources().getStringArray(R.array.data_speed_units);
+
+        long divisor = 1024*1024*1024;
+        String temp = "";
+
+        for (String data_unit : data_units) {
+            if (data_unit.equals(selected_unit))
+                break;
+            else
+                divisor = divisor/1024;
+        }
+
+        Toast.makeText(getApplicationContext(), selected_unit+"", Toast.LENGTH_SHORT).show();
 
         TelephonyManager tm = (TelephonyManager) this.getSystemService(TELEPHONY_SERVICE);
-        hasPermissions();
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            ActivityCompat.requestPermissions(this,
-                    new String[] {
-                            Manifest.permission.READ_PHONE_STATE, Manifest.permission.READ_CALENDAR
-                    }, PERMISSION_READ_PHONE_STATE);
-            //return;
-        }
-        String subscriberID = tm.getSubscriberId();
+        @SuppressLint("MissingPermission") String subscriberID = tm.getSubscriberId();
 
         //This code is used to monitor app data usage for a particular app
 //        PackageManager manager = this.getPackageManager();
@@ -89,31 +132,22 @@ public class MainActivity extends AppCompatActivity {
             if(networkStatsByApp == null){
                 Log.i("Info", "Error");
             }else{
-                long temp  = (networkStatsByApp.getRxBytes() + networkStatsByApp.getTxBytes())/(1024);
-                Log.i("Info", "Total: " + temp);
+                double total_data_trans  = (networkStatsByApp.getRxBytes() + networkStatsByApp.getTxBytes())/(divisor*1.0);
+                Log.i("Info", "Total: " + total_data_trans);
+
+
                 textView = findViewById(R.id.text_view_network);
-                textView.setText( temp + " KB" );
+                textView.setText( String.format("%.3f", total_data_trans) + selected_unit );
             }
         } catch (RemoteException | ParseException e) {
             e.printStackTrace();
         }
 
-
-        //Setup a FAB to open Cricket score
-        FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(MainActivity.this, CricketScoreActivity.class);
-                startActivity(intent);
-            }
-        });
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        requestPermissions();
+    public void onNothingSelected(AdapterView<?> parent) {
+        // Another interface callback
+
     }
 
     private void requestPermissions() {

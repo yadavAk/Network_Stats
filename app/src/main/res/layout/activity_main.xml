@@ -37,6 +37,13 @@
             android:fontFamily="sans-serif-light"
             android:padding="@dimen/activity_margin"/>
 
+        <Spinner
+            android:id="@+id/data_unit_spinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:drawable/btn_dropdown"
+            android:spinnerMode="dropdown"/>
+
         <TextView
             android:id="@+id/network_total"
             android:layout_width="match_parent"

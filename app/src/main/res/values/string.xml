@@ -9,4 +9,13 @@
 
     <!-- for submit button -->
     <string name="submit"> Submit </string>
+
+    <string-array name="data_speed_units">
+        <item>GB</item>
+        <item>MB</item>
+        <item>KB</item>
+        <item>Bytes</item>
+    </string-array>
+
+
 </resources>
