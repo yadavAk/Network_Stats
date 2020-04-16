@@ -3,7 +3,6 @@ package com.example.lutherking.myapplication;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
-import android.app.Activity;
 import android.app.AppOpsManager;
 import android.app.usage.NetworkStats;
 import android.app.usage.NetworkStatsManager;
@@ -13,11 +12,11 @@ import android.content.Intent;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.RemoteException;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
@@ -27,21 +26,18 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-
-import org.w3c.dom.Text;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
     private static final String TAG = "MainActivity";
     private static final int PERMISSION_READ_PHONE_STATE = 37;
+    Handler handler = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,8 +94,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             else
                 divisor = divisor/1024;
         }
-
-        Toast.makeText(getApplicationContext(), selected_unit+"", Toast.LENGTH_SHORT).show();
 
         TelephonyManager tm = (TelephonyManager) this.getSystemService(TELEPHONY_SERVICE);
         @SuppressLint("MissingPermission") String subscriberID = tm.getSubscriberId();
@@ -164,11 +158,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     private boolean hasPermissionToReadPhoneStats() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_DENIED) {
-            return false;
-        } else {
-            return true;
-        }
+        return ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_DENIED;
     }
 
     private void requestPhoneStateStats() {
@@ -176,9 +166,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     private boolean hasPermissionToReadNetworkHistory() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            return true;
-        }
         final AppOpsManager appOps = (AppOpsManager) getSystemService(Context.APP_OPS_SERVICE);
         int mode = appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,
                 android.os.Process.myUid(), getPackageName());
