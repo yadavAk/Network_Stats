@@ -19,20 +19,20 @@ public class CricketScoreActivity extends AppCompatActivity {
     }
 
     private void displayForTeamA(int number){
-        TextView scoreTextView = (TextView) findViewById(R.id.team_a_score);
+        TextView scoreTextView = findViewById(R.id.team_a_score);
         scoreTextView.setText("" + number);
     }
     private void displayExtraForTeamA(int number){
-        TextView extraScoreTextView = (TextView) findViewById(R.id.extra_run_by_team_a);
+        TextView extraScoreTextView = findViewById(R.id.extra_run_by_team_a);
         extraScoreTextView.setText("Extra runs : " + number);
     }
 
     private void displayForTeamB(int number){
-        TextView scoreTextView = (TextView) findViewById(R.id.team_b_score);
+        TextView scoreTextView = findViewById(R.id.team_b_score);
         scoreTextView.setText("" + number);
     }
     private void displayExtraForTeamB(int number){
-        TextView extraScoreTextView = (TextView) findViewById(R.id.extra_run_by_team_b);
+        TextView extraScoreTextView = findViewById(R.id.extra_run_by_team_b);
         extraScoreTextView.setText("Extra runs : " + number);
     }
 

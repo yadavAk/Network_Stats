@@ -10,6 +10,9 @@
     <!-- for submit button -->
     <string name="submit"> Submit </string>
 
+    <string name="pick_time">Pick Time</string>
+    <string name="pick_date">Pick Start Date</string>
+
     <string-array name="data_speed_units">
         <item>GB</item>
         <item>MB</item>
