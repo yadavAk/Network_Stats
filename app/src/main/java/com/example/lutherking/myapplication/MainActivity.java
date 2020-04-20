@@ -21,7 +21,6 @@ import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.RemoteException;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
@@ -44,11 +43,20 @@ import java.util.Calendar;
 import java.util.Locale;
 import java.util.Objects;
 
-public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
+public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
+
     private static final int PERMISSION_READ_PHONE_STATE = 37;
+
+    /** date variable to store datePicked by user*/
     private static String datePicked = "";
-    private static SimpleDateFormat dateFormat = new SimpleDateFormat("M dd, yyyy");
+
+    /** Formatted date to format date */
+    private static SimpleDateFormat dateFormat =
+            new SimpleDateFormat("M dd, yyyy", Locale.getDefault());
+
+    /** Spinner field to enter the unit of the data usage */
+    private Spinner mDataUnitSpinner;
 
     public void showTimePickerDialog(View v) {
         DialogFragment newFragment = new TimePickerFragment();
@@ -70,17 +78,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         if(!hasPermissions())
                 return ;
 
-        Spinner spinner = findViewById(R.id.data_unit_spinner);
+        mDataUnitSpinner = findViewById(R.id.data_unit_spinner);
 
-        spinner.setOnItemSelectedListener(this);
-
-        // Create an ArrayAdapter using the string array and a default spinner layout
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
-                R.array.data_speed_units, android.R.layout.simple_spinner_item);
-        // Specify the layout to use when the list of choices appears
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        // Apply the adapter to the spinner
-        spinner.setAdapter(adapter);
+        setupSpinner();
 
 
         //Setup a FAB to open Cricket score
@@ -94,89 +94,114 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         });
     }
 
+    /**
+     * Setup the dropdown spinner that allows the user to select the gender of the pet.
+     */
+    private void setupSpinner() {
+
+        TelephonyManager tm = (TelephonyManager) this.getSystemService(TELEPHONY_SERVICE);
+        @SuppressLint("MissingPermission") final String subscriberID = tm.getSubscriberId();
+
+        final NetworkStatsManager networkStatsManager =
+                (NetworkStatsManager) this.getSystemService(Context.NETWORK_STATS_SERVICE);
+
+        // Create an ArrayAdapter using the string array and a default spinner layout
+        ArrayAdapter<CharSequence> dataUnitSpinnerAdapter = ArrayAdapter.createFromResource(this,
+                R.array.data_speed_units, android.R.layout.simple_spinner_item);
+        // Specify the layout to use when the list of choices appears
+        dataUnitSpinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        // Apply the adapter to the spinner
+        mDataUnitSpinner.setAdapter(dataUnitSpinnerAdapter);
+
+        mDataUnitSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                // An item was selected. You can retrieve the selected item using
+                String selected_unit = parent.getItemAtPosition(position).toString();
+
+                String[] data_units = getResources().getStringArray(R.array.data_speed_units);
+
+                long divisor = 1024*1024*1024;
+
+                for (String data_unit : data_units) {
+                    if (data_unit.equals(selected_unit))
+                        break;
+                    else
+                        divisor = divisor/1024;
+                }
+
+                // This code is used to monitor app data usage for a particular app
+                // PackageManager manager = this.getPackageManager();
+                // ApplicationInfo info = null;
+                // try {
+                //  info = manager.getApplicationInfo("com.example.app", 0);
+                // } catch (PackageManager.NameNotFoundException e) {
+                //  e.printStackTrace();
+                // }
+                // int uid = info.uid;
+
+                try {
+                    String date_string;
+
+                    if(datePicked.equals("")) {
+                        Calendar calendar = Calendar.getInstance();
+                        date_string = dateFormat.format(calendar.getTime());
+                    }
+                    else{
+                        date_string = datePicked;
+                    }
+
+                    TextView textView = findViewById(R.id.start_date);
+                    textView.setText(date_string);
+
+                    long start = dateFormat.parse(date_string).getTime();
+                    long end = System.currentTimeMillis();
+                    NetworkStats.Bucket networkStatsByApp =
+                            networkStatsManager.querySummaryForDevice(
+                                    ConnectivityManager.TYPE_MOBILE,
+                                    subscriberID, start, end);
+
+                    if(networkStatsByApp == null){
+                        Log.i("Info", "Error");
+                        Toast.makeText(MainActivity.this,
+                                "NULL Error", Toast.LENGTH_SHORT).show();
+                    }else{
+                        double total_data_trans  = networkStatsByApp.getRxBytes() + networkStatsByApp.getTxBytes();
+
+                        total_data_trans = total_data_trans/(divisor*1.0);
+
+                        Log.i("Info", "Total: " + total_data_trans);
+
+                        String displayText = String.format(Locale.getDefault(),
+                                "%.3f", total_data_trans) + " " + selected_unit;
+
+                        Toast.makeText(MainActivity.this,
+                                displayText, Toast.LENGTH_SHORT).show();
+
+
+                        textView = findViewById(R.id.text_view_network);
+                        textView.setText( displayText );
+                    }
+                } catch (RemoteException | ParseException e) {
+                    e.printStackTrace();
+                    Toast.makeText(MainActivity.this,
+                            "Remote or Parse Exception", Toast.LENGTH_SHORT).show();
+                }
+
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                //When nothing is selected
+            }
+        });
+    }
     @Override
     protected void onStart() {
         super.onStart();
         requestPermissions();
     }
 
-    public void onItemSelected(AdapterView<?> parent, View view,
-                               int pos, long id) {
-
-
-        // An item was selected. You can retrieve the selected item using
-        String selected_unit = parent.getItemAtPosition(pos).toString();
-
-        String[] data_units = getResources().getStringArray(R.array.data_speed_units);
-
-        long divisor = 1024*1024*1024;
-        String temp = "";
-
-        for (String data_unit : data_units) {
-            if (data_unit.equals(selected_unit))
-                break;
-            else
-                divisor = divisor/1024;
-        }
-
-        TelephonyManager tm = (TelephonyManager) this.getSystemService(TELEPHONY_SERVICE);
-        @SuppressLint("MissingPermission") String subscriberID = tm.getSubscriberId();
-
-        //This code is used to monitor app data usage for a particular app
-//        PackageManager manager = this.getPackageManager();
-//        ApplicationInfo info = null;
-//        try {
-//            info = manager.getApplicationInfo("com.example.app", 0);
-//        } catch (PackageManager.NameNotFoundException e) {
-//            e.printStackTrace();
-//        }
-//        int uid = info.uid;
-
-        NetworkStatsManager networkStatsManager = (NetworkStatsManager) this.getSystemService(Context.NETWORK_STATS_SERVICE);
-
-        try {
-            String date_string;
-
-            if(datePicked.equals("")) {
-                Calendar calendar = Calendar.getInstance();
-                date_string = dateFormat.format(calendar.getTime());
-            }
-            else{
-                date_string = datePicked;
-            }
-
-            TextView textView = findViewById(R.id.start_date);
-            textView.setText(date_string);
-
-            long start = dateFormat.parse(date_string).getTime();
-            long end = System.currentTimeMillis();
-            NetworkStats.Bucket networkStatsByApp = networkStatsManager.querySummaryForDevice(ConnectivityManager.TYPE_MOBILE, subscriberID, start, end);
-
-            if(networkStatsByApp == null){
-                Log.i("Info", "Error");
-                Toast.makeText(this, "NULL Error", Toast.LENGTH_SHORT).show();
-            }else{
-                double total_data_trans  = networkStatsByApp.getRxBytes() + networkStatsByApp.getTxBytes();
-                total_data_trans = total_data_trans/(divisor*1.0);
-                Log.i("Info", "Total: " + total_data_trans);
-
-
-                textView = findViewById(R.id.text_view_network);
-                String displayText = String.format(Locale.getDefault(), "%.3f", total_data_trans) + " " + selected_unit;
-                Toast.makeText(this, displayText, Toast.LENGTH_SHORT).show();
-                textView.setText( displayText );
-            }
-        } catch (RemoteException | ParseException e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Remote or Parse Exception", Toast.LENGTH_SHORT).show();
-        }
-
-    }
-
-    public void onNothingSelected(AdapterView<?> parent) {
-        // Another interface callback
-
-    }
 
     public static class TimePickerFragment extends DialogFragment
             implements TimePickerDialog.OnTimeSetListener {
